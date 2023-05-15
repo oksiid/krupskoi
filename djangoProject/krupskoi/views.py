@@ -1,14 +1,17 @@
 from urllib import request
+from django.contrib.auth import authenticate, login, logout
 
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
-from djangoProject.krupskoi.models import Kalitka, Vorota
+from django.shortcuts import render, redirect
+from djangoProject.krupskoi.models import Kalitka, Vorota, Premission
 
 from rest_framework import  status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
 from djangoProject.krupskoi.serializers import VhodSerializer, VhodSerializer1
+from django.contrib.auth.models import User
+
 from collections import namedtuple
 
 nt = namedtuple("object", ["model", "serializers"])
@@ -70,30 +73,79 @@ def ListView(request, api_name):
 
 
 def index(request):
-    if request.method == "POST":
-        try:
-            var = int(request.POST["kalitka"])
-            obj = Kalitka.objects.get(entry_name='kalitka')
-            obj.entry_code = True
-            obj.save()
-        except:
-            pass
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            try:
+                var = int(request.POST["kalitka"])
+                obj = Kalitka.objects.get(entry_name='kalitka')
+                obj.entry_code = True
+                obj.save()
+            except:
+                pass
 
-        try:
-            var = int(request.POST["vorota"])
-            obj = Vorota.objects.get(entry_name='vorota')
-            obj.entry_code = True
-            obj.save()
+            try:
+                var = int(request.POST["vorota"])
+                obj = Vorota.objects.get(entry_name='vorota')
+                obj.entry_code = True
+                obj.save()
 
-        except:
-            pass
+            except:
+                pass
+
+            return HttpResponseRedirect('/')
+    else:
+        return redirect('signin')
 
 
-        return HttpResponseRedirect('/')
 
     context={
         "vorota": Vorota.objects.get(entry_name='vorota'),
-        "kalitka": Kalitka.objects.get(entry_name='kalitka')
+        "kalitka": Kalitka.objects.get(entry_name='kalitka'),
+        "prem": Premission.objects.get(user=request.user)
     }
     return render(request, 'index.html', context)
 
+def signin(request):
+    if request.method == 'GET':
+        if request.user.is_authenticated:
+            return redirect('index')
+        else:
+            return render(request, 'signin.html')
+
+    if request.method == 'POST':
+        username = request.POST["username"]
+        password = request.POST["password"]
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('index')
+        else:
+            # Return an 'invalid login' error message.
+            return redirect('signin')
+
+def signup(request):
+    if request.method == 'GET':
+        if request.user.is_authenticated:
+            return redirect('index')
+        else:
+            return render(request, 'signup.html')
+
+    if request.method == 'POST':
+        try:
+            user = User.objects.create_user(username=request.POST["phone"],first_name=request.POST["username"], last_name=request.POST["kvartira"], password=request.POST["password"])
+            user.save()
+            prem = Premission.objects.create(user=user)
+            prem.save()
+            login(request, user)
+            return redirect('index')
+        except:
+            return redirect('signup')
+    else:
+        return redirect('signup')
+
+def logoutuser(request):
+    if request.user.is_authenticated:
+        logout(request)
+        return redirect('signin')
+    else:
+        return redirect('signin')

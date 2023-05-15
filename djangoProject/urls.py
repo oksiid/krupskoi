@@ -16,12 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from djangoProject.krupskoi.views import index
+from djangoProject.krupskoi.views import index, signin, signup, logoutuser
 
 
 
 urlpatterns  = [
     path('admin/', admin.site.urls),
     path('', index, name="index"),
+    path('signin/', signin, name="signin"),
+    path('signup/', signup, name="signup"),
+    path('logout/', logoutuser, name="logoutuser"),
     path('krupskoi/', include('djangoProject.krupskoi.urls')),
 ]
